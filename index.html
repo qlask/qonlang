@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Conlang Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,300;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+<link rel="stylesheet" href="css/style.css"/>
+</head>
+<body>
+<div id="app">
+  <!-- Sidebar -->
+  <aside id="sidebar">
+    <div class="sidebar-brand">
+      <span class="brand-icon"><i class="fa-solid fa-language"></i></span>
+      <span class="brand-name">Conlang<br>Studio</span>
+    </div>
+    <nav class="sidebar-nav">
+      <button class="nav-item active" data-view="dashboard"><i class="fa-solid fa-house"></i><span>Inicio</span></button>
+      <button class="nav-item" data-view="lexicon"><i class="fa-solid fa-book-open"></i><span>Léxico</span></button>
+      <button class="nav-item" data-view="grammar"><i class="fa-solid fa-scroll"></i><span>Gramática</span></button>
+      <button class="nav-item" data-view="phonology"><i class="fa-solid fa-waveform"></i><span>Fonología</span></button>
+      <button class="nav-item" data-view="font-editor"><i class="fa-solid fa-pen-nib"></i><span>Editor de Fuente</span></button>
+      <button class="nav-item" data-view="tags"><i class="fa-solid fa-tags"></i><span>Etiquetas</span></button>
+      <button class="nav-item" data-view="settings"><i class="fa-solid fa-gear"></i><span>Ajustes</span></button>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sync-status" id="sync-status">
+        <i class="fa-solid fa-circle-check"></i>
+        <span>Sincronizado</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main id="main">
+    <header id="topbar">
+      <button id="menu-toggle" class="icon-btn"><i class="fa-solid fa-bars"></i></button>
+      <div class="topbar-center">
+        <h1 id="view-title">Dashboard</h1>
+      </div>
+      <div class="topbar-actions">
+        <button id="btn-save-github" class="btn btn-primary btn-sm" onclick="App.saveToGitHub()">
+          <i class="fa-brands fa-github"></i> Guardar en GitHub
+        </button>
+        <button id="btn-new" class="btn btn-accent btn-sm" onclick="App.openNewModal()">
+          <i class="fa-solid fa-plus"></i> Nuevo
+        </button>
+      </div>
+    </header>
+
+    <div id="view-container">
+      <!-- Views loaded here -->
+    </div>
+  </main>
+</div>
+
+<!-- GitHub Token Modal -->
+<div id="modal-github" class="modal-overlay hidden">
+  <div class="modal">
+    <div class="modal-header">
+      <h2><i class="fa-brands fa-github"></i> Conectar con GitHub</h2>
+      <button class="icon-btn" onclick="App.closeModal('modal-github')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <p class="modal-desc">Para guardar tu conlang en GitHub, necesitas un token de acceso personal con permisos de repositorio.</p>
+      <div class="form-group">
+        <label>Token de GitHub</label>
+        <input type="password" id="gh-token" placeholder="ghp_xxxxxxxxxxxx" class="form-input"/>
+      </div>
+      <div class="form-group">
+        <label>Usuario / Organización</label>
+        <input type="text" id="gh-owner" placeholder="usuario" class="form-input"/>
+      </div>
+      <div class="form-group">
+        <label>Repositorio</label>
+        <input type="text" id="gh-repo" placeholder="mi-conlang" class="form-input"/>
+      </div>
+      <div class="form-group">
+        <label>Rama</label>
+        <input type="text" id="gh-branch" value="main" class="form-input"/>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="App.closeModal('modal-github')">Cancelar</button>
+      <button class="btn btn-primary" onclick="App.saveGitHubConfig()">Conectar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Word Modal -->
+<div id="modal-word" class="modal-overlay hidden">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <h2 id="word-modal-title">Nueva Palabra</h2>
+      <button class="icon-btn" onclick="App.closeModal('modal-word')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group flex-2">
+          <label>Palabra (alfabeto nativo) <span class="optional">opcional</span></label>
+          <input type="text" id="word-native" placeholder="Escrito en el alfabeto del idioma" class="form-input native-font"/>
+        </div>
+        <div class="form-group flex-2">
+          <label>Romanización</label>
+          <input type="text" id="word-romanized" placeholder="Transliteración latina" class="form-input"/>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group flex-2">
+          <label>Pronunciación (IPA)</label>
+          <input type="text" id="word-ipa" placeholder="/prəˌnʌnsiˈeɪʃən/" class="form-input ipa-font"/>
+          <div class="ipa-keyboard" id="ipa-keyboard"></div>
+        </div>
+        <div class="form-group">
+          <label>Categoría gramatical</label>
+          <select id="word-pos" class="form-select">
+            <option value="">— Seleccionar —</option>
+            <option value="sustantivo">Sustantivo</option>
+            <option value="verbo">Verbo</option>
+            <option value="adjetivo">Adjetivo</option>
+            <option value="adverbio">Adverbio</option>
+            <option value="preposición">Preposición</option>
+            <option value="conjunción">Conjunción</option>
+            <option value="pronombre">Pronombre</option>
+            <option value="interjección">Interjección</option>
+            <option value="artículo">Artículo</option>
+            <option value="numeral">Numeral</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Definición</label>
+        <textarea id="word-definition" class="form-textarea" rows="3" placeholder="Definición en español o en el idioma meta..."></textarea>
+      </div>
+      <div class="form-group">
+        <label>Notas (Markdown soportado)</label>
+        <div class="markdown-editor">
+          <div class="md-toolbar">
+            <button type="button" onclick="MD.wrap('word-notes','**','**')" title="Negrita"><b>B</b></button>
+            <button type="button" onclick="MD.wrap('word-notes','*','*')" title="Cursiva"><i>I</i></button>
+            <button type="button" onclick="MD.wrap('word-notes','`','`')" title="Código"><code>&lt;&gt;</code></button>
+            <button type="button" onclick="MD.insertLine('word-notes','- ')" title="Lista">≡</button>
+            <button type="button" onclick="MD.togglePreview('word-notes')" title="Vista previa"><i class="fa-solid fa-eye"></i></button>
+          </div>
+          <textarea id="word-notes" class="form-textarea md-input" rows="4" placeholder="Notas adicionales, ejemplos, etimología..."></textarea>
+          <div id="word-notes-preview" class="md-preview hidden"></div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Etiquetas</label>
+        <div id="word-tags-container" class="tags-selector"></div>
+      </div>
+      <div class="form-group">
+        <label>Ejemplos de uso</label>
+        <div id="word-examples" class="examples-list">
+          <div class="example-item">
+            <input type="text" class="form-input ex-native native-font" placeholder="Frase en el idioma"/>
+            <input type="text" class="form-input ex-translation" placeholder="Traducción"/>
+          </div>
+        </div>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="Lexicon.addExample()"><i class="fa-solid fa-plus"></i> Añadir ejemplo</button>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="App.closeModal('modal-word')">Cancelar</button>
+      <button class="btn btn-primary" onclick="Lexicon.saveWord()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Tag Modal -->
+<div id="modal-tag" class="modal-overlay hidden">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <h2>Nueva Etiqueta</h2>
+      <button class="icon-btn" onclick="App.closeModal('modal-tag')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Nombre</label>
+        <input type="text" id="tag-name" class="form-input" placeholder="Ej: arcaísmo, técnico..."/>
+      </div>
+      <div class="form-group">
+        <label>Color</label>
+        <div class="color-swatches" id="tag-color-picker">
+          <button class="swatch active" data-color="#6B5CE7" style="background:#6B5CE7"></button>
+          <button class="swatch" data-color="#E7705C" style="background:#E7705C"></button>
+          <button class="swatch" data-color="#5CE7A0" style="background:#5CE7A0"></button>
+          <button class="swatch" data-color="#E7C85C" style="background:#E7C85C"></button>
+          <button class="swatch" data-color="#5CA4E7" style="background:#5CA4E7"></button>
+          <button class="swatch" data-color="#C85CE7" style="background:#C85CE7"></button>
+          <button class="swatch" data-color="#E75C8A" style="background:#E75C8A"></button>
+          <button class="swatch" data-color="#5CE7D4" style="background:#5CE7D4"></button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Descripción</label>
+        <input type="text" id="tag-desc" class="form-input" placeholder="Descripción opcional"/>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="App.closeModal('modal-tag')">Cancelar</button>
+      <button class="btn btn-primary" onclick="Tags.saveTag()">Crear</button>
+    </div>
+  </div>
+</div>
+
+<!-- Rule/Grammar Modal -->
+<div id="modal-rule" class="modal-overlay hidden">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <h2 id="rule-modal-title">Nueva Regla Gramatical</h2>
+      <button class="icon-btn" onclick="App.closeModal('modal-rule')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group flex-2">
+          <label>Título</label>
+          <input type="text" id="rule-title" class="form-input" placeholder="Ej: Conjugación verbal"/>
+        </div>
+        <div class="form-group">
+          <label>Categoría</label>
+          <select id="rule-category" class="form-select">
+            <option value="morfología">Morfología</option>
+            <option value="sintaxis">Sintaxis</option>
+            <option value="fonología">Fonología</option>
+            <option value="ortografía">Ortografía</option>
+            <option value="pragmática">Pragmática</option>
+            <option value="semántica">Semántica</option>
+            <option value="otro">Otro</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Contenido (Markdown completo)</label>
+        <div class="markdown-editor">
+          <div class="md-toolbar">
+            <button type="button" onclick="MD.wrap('rule-content','# ','')">H1</button>
+            <button type="button" onclick="MD.wrap('rule-content','## ','')">H2</button>
+            <button type="button" onclick="MD.wrap('rule-content','### ','')">H3</button>
+            <button type="button" onclick="MD.wrap('rule-content','**','**')"><b>B</b></button>
+            <button type="button" onclick="MD.wrap('rule-content','*','*')"><i>I</i></button>
+            <button type="button" onclick="MD.wrap('rule-content','`','`')"><code>&lt;&gt;</code></button>
+            <button type="button" onclick="MD.insertTable('rule-content')"><i class="fa-solid fa-table"></i></button>
+            <button type="button" onclick="MD.insertLine('rule-content','- ')">≡</button>
+            <button type="button" onclick="MD.insertLine('rule-content','1. ')">1.</button>
+            <button type="button" onclick="MD.wrap('rule-content','> ','')">❝</button>
+            <button type="button" onclick="MD.togglePreview('rule-content')"><i class="fa-solid fa-eye"></i></button>
+          </div>
+          <textarea id="rule-content" class="form-textarea md-input" rows="12" placeholder="Escribe en Markdown...&#10;&#10;## Ejemplo&#10;&#10;| Forma | Singular | Plural |&#10;|-------|----------|--------|&#10;| Nom.  | -a       | -ai    |"></textarea>
+          <div id="rule-content-preview" class="md-preview hidden"></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="App.closeModal('modal-rule')">Cancelar</button>
+      <button class="btn btn-primary" onclick="Grammar.saveRule()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm Delete Modal -->
+<div id="modal-confirm" class="modal-overlay hidden">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <h2>Confirmar eliminación</h2>
+    </div>
+    <div class="modal-body">
+      <p id="confirm-message">¿Estás seguro de que deseas eliminar este elemento?</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="App.closeModal('modal-confirm')">Cancelar</button>
+      <button class="btn btn-danger" id="confirm-action">Eliminar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<script src="js/store.js"></script>
+<script src="js/github.js"></script>
+<script src="js/markdown.js"></script>
+<script src="js/tags.js"></script>
+<script src="js/lexicon.js"></script>
+<script src="js/grammar.js"></script>
+<script src="js/phonology.js"></script>
+<script src="js/font-editor.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
